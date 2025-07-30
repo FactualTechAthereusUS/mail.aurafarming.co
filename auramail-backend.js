@@ -78,6 +78,22 @@ const upload = multer({
 });
 
 // Database configuration - optimized for production
+// Add message_id column to emails table if it doesn't exist
+async function addMessageIdColumn() {
+  try {
+    await pool.execute(`
+      ALTER TABLE emails 
+      ADD COLUMN IF NOT EXISTS message_id VARCHAR(255) NULL,
+      ADD INDEX idx_message_id (message_id)
+    `);
+    console.log('✅ Added message_id column to emails table');
+  } catch (error) {
+    console.error('Failed to add message_id column:', error);
+  }
+}
+
+// Call it after pool creation
+addMessageIdColumn();
 const dbConfig = {
   host: 'localhost',
   user: 'auramail',
@@ -293,6 +309,18 @@ app.get('/api/emails/:folder/:userId', authenticateToken, async (req, res) => {
     const { userId, folder } = req.params;
     const { page = 1, limit = 50, search = '', unread_only = false } = req.query;
     const offset = (page - 1) * limit;
+    
+    // Get user's email for Maildir sync
+    const [userInfo] = await pool.execute(
+      'SELECT email FROM virtual_users WHERE id = ?',
+      [userId]
+    );
+    
+    if (userInfo.length > 0) {
+      const username = userInfo[0].email.split('@')[0];
+      // Sync Maildir emails before fetching
+      await syncMaildirToDatabase(userId, username);
+    }
 
     // Verify user owns the request or is admin
     if (req.user.id !== parseInt(userId) && req.user.email !== 'admin@aurafarming.co') {
@@ -381,6 +409,93 @@ app.get('/api/emails/:folder/:userId', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// Sync Maildir emails to MySQL database
+async function syncMaildirToDatabase(userId, username) {
+  try {
+    console.log(`🔄 Syncing Maildir emails for user ${username} (ID: ${userId})`);
+    
+    const maildirPath = `/var/mail/vhosts/aurafarming.co/${username}`;
+    const newEmailsPath = path.join(maildirPath, 'new');
+    const curEmailsPath = path.join(maildirPath, 'cur');
+    
+    // Read new (unread) emails
+    try {
+      const newFiles = await fs.readdir(newEmailsPath);
+      for (const file of newFiles) {
+        try {
+          const filePath = path.join(newEmailsPath, file);
+          const content = await fs.readFile(filePath, 'utf8');
+          const email = parseEmail(content, file, false); // false = unread
+          
+          if (email) {
+            // Check if email already exists in database
+            const [existing] = await pool.execute(
+              'SELECT id FROM emails WHERE message_id = ? OR (from_email = ? AND to_email = ? AND subject = ? AND created_at = ?)',
+              [email.message_id, email.from_email, email.to_email, email.subject, email.created_at]
+            );
+            
+            if (existing.length === 0) {
+              // Insert new email into database
+              await pool.execute(
+                `INSERT INTO emails (from_email, to_email, subject, body, is_read, 
+                                   has_attachments, created_at, priority, folder, to_user_id, message_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [email.from_email, email.to_email, email.subject, email.body, false,
+                 email.has_attachments, email.created_at, 'normal', 'inbox', userId, email.message_id]
+              );
+              console.log(`✅ Synced new email: ${email.subject}`);
+            }
+          }
+        } catch (err) {
+          console.error(`Error syncing email ${file}:`, err);
+        }
+      }
+    } catch (err) {
+      console.log('No new emails directory or empty');
+    }
+    
+    // Read current (read) emails
+    try {
+      const curFiles = await fs.readdir(curEmailsPath);
+      for (const file of curFiles) {
+        try {
+          const filePath = path.join(curEmailsPath, file);
+          const content = await fs.readFile(filePath, 'utf8');
+          const email = parseEmail(content, file, true); // true = read
+          
+          if (email) {
+            // Check if email already exists
+            const [existing] = await pool.execute(
+              'SELECT id FROM emails WHERE message_id = ? OR (from_email = ? AND to_email = ? AND subject = ? AND created_at = ?)',
+              [email.message_id, email.from_email, email.to_email, email.subject, email.created_at]
+            );
+            
+            if (existing.length === 0) {
+              // Insert read email into database
+              await pool.execute(
+                `INSERT INTO emails (from_email, to_email, subject, body, is_read, 
+                                   has_attachments, created_at, priority, folder, to_user_id, message_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [email.from_email, email.to_email, email.subject, email.body, true,
+                 email.has_attachments, email.created_at, 'normal', 'inbox', userId, email.message_id]
+              );
+              console.log(`✅ Synced read email: ${email.subject}`);
+            }
+          }
+        } catch (err) {
+          console.error(`Error syncing email ${file}:`, err);
+        }
+      }
+    } catch (err) {
+      console.log('No cur emails directory or empty');
+    }
+    
+    console.log(`✅ Maildir sync completed for ${username}`);
+  } catch (error) {
+    console.error('Maildir sync error:', error);
+  }
+}
 
 // Enhanced email sending with SendGrid and threading support
 app.post('/api/emails/send', authenticateToken, upload.array('attachments', 10), async (req, res) => {
