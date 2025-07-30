@@ -68,7 +68,7 @@ export default function WebmailPage() {
     setIsLoading(true)
     
     try {
-      const response = await fetch(`${API_URL}/api/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
@@ -157,26 +157,28 @@ export default function WebmailPage() {
     try {
       console.log(`📬 Fetching emails for folder: ${activeFolder}, user: ${actualUserId}`)
       
-      // FIXED: Use different endpoints based on folder
-      let endpoint = `${API_URL}/api/emails/inbox/1`; // Default to inbox
+      // Use correct API endpoints
+      let endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // Default to inbox
       
       if (activeFolder === 'sent') {
-        endpoint = `${API_URL}/api/emails/sent/1`;
+        endpoint = `${API_URL}/api/emails/sent/${actualUserId}`;
       } else if (activeFolder === 'starred') {
-        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter starred on frontend
+        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter starred on frontend
       } else if (activeFolder === 'archive') {
-        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter archived on frontend  
+        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter archived on frontend  
       } else if (activeFolder === 'trash') {
-        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter trash on frontend
+        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter trash on frontend
       }
       
       console.log(`🔑 Using token: ${actualToken?.substring(0, 20)}...`)
       console.log(`📡 Calling endpoint: ${endpoint}`)
       
       const response = await fetch(endpoint, {
+        method: 'GET',
         headers: { 
           'Authorization': `Bearer ${actualToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       })
       
