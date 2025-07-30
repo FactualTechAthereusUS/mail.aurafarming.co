@@ -566,12 +566,12 @@ export default function WebmailPage() {
             </div>
           </div>
 
-          {true ? ( // Always attempt HTML rendering
+          {selectedEmail?.body ? (
             <div 
               className="email-html-content"
               dangerouslySetInnerHTML={{ 
                 __html: (() => {
-                  let htmlContent = selectedEmail?.body || '';
+                  let htmlContent = selectedEmail.body;
                   
                   // FIRST: Fix broken HTML tags that got corrupted during email parsing
                   htmlContent = htmlContent
@@ -613,7 +613,7 @@ export default function WebmailPage() {
                     .trim();
                   
                   // EXTRACT THE REAL CLAUDE.AI LINK FOR THE USER
-                  const linkMatch = selectedEmail?.body?.match(/href=["']([^"']*claude[^"']*)["']/i);
+                  const linkMatch = htmlContent.match(/href=["']([^"']*claude[^"']*)["']/i);
                   if (linkMatch) {
                     console.log('🔗 REAL CLAUDE.AI LINK FOUND:', linkMatch[1]);
                     // Also display it in the email for easy access
@@ -659,7 +659,7 @@ export default function WebmailPage() {
           ) : (
             // Render plain text email with preserved line breaks
             <div className="text-gray-200 whitespace-pre-wrap text-sm leading-relaxed" style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-              {selectedEmail?.body || 'No content available'}
+              No content available
             </div>
           )}
         </div>
