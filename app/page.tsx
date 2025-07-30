@@ -68,7 +68,7 @@ export default function WebmailPage() {
     setIsLoading(true)
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
@@ -158,16 +158,16 @@ export default function WebmailPage() {
       console.log(`📬 Fetching emails for folder: ${activeFolder}, user: ${actualUserId}`)
       
       // Use correct API endpoints
-      let endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // Default to inbox
+      let endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // Default to inbox
       
       if (activeFolder === 'sent') {
-        endpoint = `${API_URL}/api/emails/sent/${actualUserId}`;
+        endpoint = `${API_URL}/api/email/sent/${actualUserId}`;
       } else if (activeFolder === 'starred') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter starred on frontend
+        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter starred on frontend
       } else if (activeFolder === 'archive') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter archived on frontend  
+        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter archived on frontend  
       } else if (activeFolder === 'trash') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter trash on frontend
+        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter trash on frontend
       }
       
       console.log(`🔑 Using token: ${actualToken?.substring(0, 20)}...`)
@@ -232,12 +232,12 @@ export default function WebmailPage() {
       subject: emailData.subject,
       body: emailData.body,
       priority: emailData.priority,
-      from_user: user?.email || 'noreply@aurafarming.co' // Use logged-in user's email
+      from_user: user?.email || 'subscriptions@aurafarming.co' // Use logged-in user's email
       // Note: Attachments will be added in a future update
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/emails/send`, {
+      const response = await fetch(`${API_URL}/api/email/send`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
