@@ -68,7 +68,7 @@ export default function WebmailPage() {
     setIsLoading(true)
     
     try {
-      const response = await fetch(`${API_URL}/api/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
@@ -158,17 +158,7 @@ export default function WebmailPage() {
       console.log(`📬 Fetching emails for folder: ${activeFolder}, user: ${actualUserId}`)
       
       // Use correct API endpoints
-      let endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // Default to inbox
-      
-      if (activeFolder === 'sent') {
-        endpoint = `${API_URL}/api/email/sent/${actualUserId}`;
-      } else if (activeFolder === 'starred') {
-        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter starred on frontend
-      } else if (activeFolder === 'archive') {
-        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter archived on frontend  
-      } else if (activeFolder === 'trash') {
-        endpoint = `${API_URL}/api/email/inbox/${actualUserId}`; // We'll filter trash on frontend
-      }
+      let endpoint = `${API_URL}/api/emails/${activeFolder}/${actualUserId}`; // All folders use the same pattern now
       
       console.log(`🔑 Using token: ${actualToken?.substring(0, 20)}...`)
       console.log(`📡 Calling endpoint: ${endpoint}`)
@@ -232,12 +222,12 @@ export default function WebmailPage() {
       subject: emailData.subject,
       body: emailData.body,
       priority: emailData.priority,
-      from_user: user?.email || 'subscriptions@aurafarming.co' // Use logged-in user's email
+      from_user: user?.email || 'noreply@aurafarming.co' // Use logged-in user's email
       // Note: Attachments will be added in a future update
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/email/send`, {
+      const response = await fetch(`${API_URL}/api/emails/send`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
