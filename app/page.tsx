@@ -735,8 +735,10 @@ export default function WebmailPage() {
       <AnimatePresence>
         {isComposing && (
           <ComposeEmail
+            isOpen={isComposing}
             onClose={() => setIsComposing(false)}
             onSend={handleSendEmail}
+            token={token || ''}
           />
         )}
       </AnimatePresence>
