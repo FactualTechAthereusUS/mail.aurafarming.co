@@ -94,6 +94,25 @@ export default function WebmailPage() {
     }
   }
 
+  // Auto-refresh emails
+  useEffect(() => {
+    if (!user || !token) return
+    
+    console.log('🔄 Setting up auto-refresh interval')
+    // Initial fetch
+    fetchEmails(user.id, token)
+    
+    const interval = setInterval(() => {
+      console.log('⏰ Auto-refreshing emails...')
+      fetchEmails(user.id, token)
+    }, 5000) // Every 5 seconds for faster updates
+    
+    return () => {
+      console.log('🛑 Clearing auto-refresh interval')
+      clearInterval(interval)
+    }
+  }, [user, token, activeFolder])
+
   // Check for existing login on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('auramail_token')
@@ -138,17 +157,17 @@ export default function WebmailPage() {
     try {
       console.log(`📬 Fetching emails for folder: ${activeFolder}, user: ${actualUserId}`)
       
-      // FIXED: Use correct endpoints with actual user ID
-      let endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // Use actual user ID
+      // FIXED: Use different endpoints based on folder
+      let endpoint = `${API_URL}/api/emails/inbox/1`; // Default to inbox
       
       if (activeFolder === 'sent') {
-        endpoint = `${API_URL}/api/emails/sent/${actualUserId}`;
+        endpoint = `${API_URL}/api/emails/sent/1`;
       } else if (activeFolder === 'starred') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter starred on frontend
+        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter starred on frontend
       } else if (activeFolder === 'archive') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter archived on frontend  
+        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter archived on frontend  
       } else if (activeFolder === 'trash') {
-        endpoint = `${API_URL}/api/emails/inbox/${actualUserId}`; // We'll filter trash on frontend
+        endpoint = `${API_URL}/api/emails/inbox/1`; // We'll filter trash on frontend
       }
       
       console.log(`🔑 Using token: ${actualToken?.substring(0, 20)}...`)
@@ -812,37 +831,18 @@ export default function WebmailPage() {
                       .replace(/\s+/g, ' ')
                       .trim();
                     
-                    // EXTRACT THE REAL CLAUDE.AI VERIFICATION LINK
-                    // Look for various patterns that might contain the verification link
-                    const patterns = [
-                      /href=["']([^"']*claude\.ai[^"']*verify[^"']*)["']/i,
-                      /href=["']([^"']*claude\.ai[^"']*login[^"']*)["']/i,
-                      /href=["']([^"']*claude\.ai[^"']*auth[^"']*)["']/i,
-                      /href=["']([^"']*claude\.ai[^"']*\/[^"']+)["']/i,
-                      /https?:\/\/[^"\s]*claude\.ai[^"\s]*verify[^"\s]*/gi,
-                      /https?:\/\/[^"\s]*claude\.ai[^"\s]*login[^"\s]*/gi,
-                      /https?:\/\/[^"\s]*claude\.ai[^"\s]*auth[^"\s]*/gi
-                    ];
-                    
-                    let verificationLink = null;
-                    for (const pattern of patterns) {
-                      const match = selectedEmail!.body.match(pattern);
-                      if (match && match[1] && !match[1].includes('images/') && !match[1].includes('.png') && !match[1].includes('.jpg')) {
-                        verificationLink = match[1];
-                        break;
-                      }
-                    }
-                    
-                    if (verificationLink) {
-                      console.log('🔗 REAL CLAUDE.AI VERIFICATION LINK FOUND:', verificationLink);
+                    // EXTRACT THE REAL CLAUDE.AI LINK FOR THE USER
+                    const linkMatch = selectedEmail!.body.match(/href=["']([^"']*claude[^"']*)["']/i);
+                    if (linkMatch) {
+                      const decodedLink = decodeURIComponent(linkMatch[1]);
+                      console.log('🔗 REAL CLAUDE.AI LINK FOUND:', decodedLink);
                       // Also display it in the email for easy access
                       htmlContent += `
                         <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px; border-left: 4px solid #1a73e8;">
-                          <strong>🔗 Claude.ai Verification Link:</strong><br/>
-                          <a href="${verificationLink}" target="_blank" rel="noopener noreferrer" style="color: #1a73e8; word-break: break-all; text-decoration: none; padding: 8px 16px; background: #1a73e8; color: white; border-radius: 4px; display: inline-block; margin-top: 8px;">
-                            Click to Verify Account
-                          </a><br/>
-                          <small style="color: #666; margin-top: 4px; display: block;">${verificationLink}</small>
+                          <strong>🔗 Direct Link:</strong><br/>
+                          <a href="${decodedLink}" target="_blank" rel="noopener noreferrer" style="color: #1a73e8; word-break: break-all;">
+                            ${decodedLink}
+                          </a>
                         </div>
                       `;
                     }
