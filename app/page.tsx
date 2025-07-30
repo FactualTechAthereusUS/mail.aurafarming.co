@@ -536,29 +536,29 @@ export default function WebmailPage() {
         <div className="p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold text-white mb-3">{selectedEmail.subject}</h1>
+              <h1 className="text-xl font-semibold text-white mb-3">{selectedEmail?.subject || 'No Subject'}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>From: {selectedEmail.from_email}</span>
-                <span>To: {selectedEmail.to_email}</span>
-                <span>{new Date(selectedEmail.created_at).toLocaleString()}</span>
+                <span>From: {selectedEmail?.from_email || 'Unknown'}</span>
+                <span>To: {selectedEmail?.to_email || 'Unknown'}</span>
+                <span>{selectedEmail?.created_at ? new Date(selectedEmail.created_at).toLocaleString() : 'Unknown Date'}</span>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => handleStarEmail(selectedEmail.id, !selectedEmail.starred)}
+                onClick={() => selectedEmail?.id && handleStarEmail(selectedEmail.id, !selectedEmail.starred)}
                 className="p-2 hover:bg-[#1A1A1A] rounded text-gray-400 hover:text-white"
               >
-                <Star className={`w-4 h-4 ${selectedEmail.starred ? 'text-yellow-500 fill-current' : ''}`} />
+                <Star className={`w-4 h-4 ${selectedEmail?.starred ? 'text-yellow-500 fill-current' : ''}`} />
               </button>
               <button 
-                onClick={() => handleArchiveEmail(selectedEmail.id)}
+                onClick={() => selectedEmail?.id && handleArchiveEmail(selectedEmail.id)}
                 className="p-2 hover:bg-[#1A1A1A] rounded text-gray-400 hover:text-white"
               >
                 <Archive className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => handleDeleteEmail(selectedEmail.id)}
+                onClick={() => selectedEmail?.id && handleDeleteEmail(selectedEmail.id)}
                 className="p-2 hover:bg-[#1A1A1A] rounded text-gray-400 hover:text-white"
               >
                 <Trash className="w-4 h-4" />
@@ -571,7 +571,7 @@ export default function WebmailPage() {
               className="email-html-content"
               dangerouslySetInnerHTML={{ 
                 __html: (() => {
-                  let htmlContent = selectedEmail.body;
+                  let htmlContent = selectedEmail?.body || '';
                   
                   // FIRST: Fix broken HTML tags that got corrupted during email parsing
                   htmlContent = htmlContent
@@ -613,7 +613,7 @@ export default function WebmailPage() {
                     .trim();
                   
                   // EXTRACT THE REAL CLAUDE.AI LINK FOR THE USER
-                  const linkMatch = selectedEmail.body.match(/href=["']([^"']*claude[^"']*)["']/i);
+                  const linkMatch = selectedEmail?.body?.match(/href=["']([^"']*claude[^"']*)["']/i);
                   if (linkMatch) {
                     console.log('🔗 REAL CLAUDE.AI LINK FOUND:', linkMatch[1]);
                     // Also display it in the email for easy access
@@ -659,7 +659,7 @@ export default function WebmailPage() {
           ) : (
             // Render plain text email with preserved line breaks
             <div className="text-gray-200 whitespace-pre-wrap text-sm leading-relaxed" style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-              {selectedEmail.body}
+              {selectedEmail?.body || 'No content available'}
             </div>
           )}
         </div>
