@@ -310,14 +310,54 @@ app.get('/api/emails/:folder/:userId', authenticateToken, async (req, res) => {
     const { page = 1, limit = 50, search = '', unread_only = false } = req.query;
     const offset = (page - 1) * limit;
     
-    // Get user's email for Maildir sync
-    const [userInfo] = await pool.execute(
-      'SELECT email FROM virtual_users WHERE id = ?',
+    // Get user's email and ensure virtual_users entry exists
+    let [userInfo] = await pool.execute(
+      'SELECT id, email FROM virtual_users WHERE id = ?',
       [userId]
     );
     
+    // If user not found in virtual_users, try to find by email
+    if (userInfo.length === 0) {
+      [userInfo] = await pool.execute(
+        'SELECT id, email FROM auramail_users WHERE id = ?',
+        [userId]
+      );
+      
+      // If found in auramail_users but not in virtual_users, create entry
+      if (userInfo.length > 0) {
+        try {
+          await pool.execute(
+            'INSERT INTO virtual_users (id, email, domain, password) VALUES (?, ?, ?, ?)',
+            [userInfo[0].id, userInfo[0].email, 'aurafarming.co', 'PLACEHOLDER']
+          );
+          console.log(`✅ Created virtual_users entry for ${userInfo[0].email}`);
+        } catch (err) {
+          if (!err.message.includes('Duplicate entry')) {
+            console.error(`❌ Failed to create virtual_users entry: ${err.message}`);
+          }
+        }
+      }
+    }
+    
     if (userInfo.length > 0) {
       const username = userInfo[0].email.split('@')[0];
+      // Create Maildir directories if they don't exist
+      const maildirPath = `/var/mail/vhosts/aurafarming.co/${username}`;
+      const newEmailsPath = path.join(maildirPath, 'new');
+      const curEmailsPath = path.join(maildirPath, 'cur');
+      
+      try {
+        await fs.mkdir(maildirPath, { recursive: true });
+        await fs.mkdir(newEmailsPath, { recursive: true });
+        await fs.mkdir(curEmailsPath, { recursive: true });
+        await fs.chmod(maildirPath, 0o770);
+        await fs.chmod(newEmailsPath, 0o770);
+        await fs.chmod(curEmailsPath, 0o770);
+        console.log(`✅ Created Maildir directories for ${username}`);
+      } catch (err) {
+        console.error(`❌ Failed to create Maildir directories: ${err.message}`);
+      }
+      
       // Sync Maildir emails before fetching
       await syncMaildirToDatabase(userId, username);
     }
