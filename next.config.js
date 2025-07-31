@@ -6,7 +6,7 @@ const nextConfig = {
   // Image optimization for Vercel
   images: {
     unoptimized: true,
-    domains: ['mail.aurafarming.co', 'api.aurafarming.co'],
+    domains: ['portal.aurafarming.co'],
   },
   
   // React optimizations
@@ -15,7 +15,7 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.aurafarming.co',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://portal.aurafarming.co/api',
   },
   
   // API rewrites to DigitalOcean backend
@@ -23,7 +23,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://api.aurafarming.co'}/:path*`
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://portal.aurafarming.co/api'}/:path*`
       }
     ]
   },

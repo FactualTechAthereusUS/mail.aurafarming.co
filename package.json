@@ -1,7 +1,7 @@
 {
-  "name": "auramail-webmail",
+  "name": "auramail-portal",
   "version": "2.0.0",
-  "description": "Modern webmail interface for AuraMail",
+  "description": "Modern macOS-style email portal for AuraMail",
   "private": true,
   "scripts": {
     "dev": "next dev",

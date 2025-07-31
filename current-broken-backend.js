@@ -723,7 +723,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get user's inbox emails
-app.get('/api/emails/inbox/1', authenticateToken, async (req, res) => {
+app.get('/api/emails/inbox/:userId', authenticateToken, async (req, res) => {
   console.log(`📬 Inbox request for user: ${req.user.username} (${req.user.email})`);
   
   try {
@@ -747,7 +747,7 @@ app.get('/api/emails/inbox/1', authenticateToken, async (req, res) => {
 });
 
 // Get user's sent emails
-app.get('/api/emails/sent/1', authenticateToken, async (req, res) => {
+app.get('/api/emails/sent/:userId', authenticateToken, async (req, res) => {
   console.log(`📤 Sent emails request for user: ${req.user.username}`);
   
   try {
