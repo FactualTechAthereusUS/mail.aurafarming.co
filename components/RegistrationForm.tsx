@@ -47,7 +47,7 @@ export default function RegistrationForm() {
       setUsernameStatus({ checking: true, available: null, message: 'Checking availability...' });
 
       try {
-        const response = await fetch(`${API_URL}/check-username`, {
+        const response = await fetch(`https://api.aurafarming.co/api/check-username`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ export default function RegistrationForm() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/register`, {
+      const response = await fetch(`https://api.aurafarming.co/api/register`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
